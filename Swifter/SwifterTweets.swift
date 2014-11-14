@@ -206,6 +206,84 @@ public extension Swifter {
             }, failure: failure)
     }
 
+    public func postStatusUpdate(status: String, media_ids: String, inReplyToStatusID: String?, lat: Double?, long: Double?, placeID: Double?, displayCoordinates: Bool?, trimUser: Bool?, success: ((status: Dictionary<String, JSONValue>?) -> Void)?, failure: FailureHandler?) {
+        var path: String = "statuses/update.json"
+        
+        var parameters = Dictionary<String, AnyObject>()
+        parameters["status"] = status
+        parameters["media_ids"] = media_ids
+        
+        if inReplyToStatusID != nil {
+            parameters["in_reply_to_status_id"] = inReplyToStatusID!
+        }
+        if placeID != nil {
+            parameters["place_id"] = placeID!
+            parameters["display_coordinates"] = true
+        }
+        else if lat != nil && long != nil {
+            parameters["lat"] = lat!
+            parameters["long"] = long!
+            parameters["display_coordinates"] = true
+        }
+        if trimUser != nil {
+            parameters["trim_user"] = trimUser!
+        }
+        
+        self.postJSONWithPath(path, baseURL: self.apiURL, parameters: parameters, uploadProgress: nil, downloadProgress: nil, success: {
+            json, response in
+            
+            success?(status: json.object)
+            return
+            
+            }, failure: failure)
+    }
+    // post Status with Multiple Media
+    public func postStatusUpdate(status: String, mediaUploads: NSArray, inReplyToStatusID: String?, lat: Double?, long: Double?, placeID: Double?, displayCoordinates: Bool?, trimUser: Bool?, success: ((status: Dictionary<String, JSONValue>?) -> Void)?, failure: FailureHandler?) {
+        var  counts : Int = 0
+        var media_ids : NSMutableArray = NSMutableArray()
+        for data in mediaUploads {
+            self.uploadMedia(mediaUploads, success: { (statuss) -> Void in
+                counts++
+                let statuses : JSONValue = statuss
+                let mediauid : String = statuses["media_id_string"].string!
+                if (countElements(mediauid) > 0) {
+                    media_ids.addObject(mediauid)
+                }
+                if (counts == mediaUploads.count) {
+                    self.postStatusUpdate(status, media_ids: media_ids.componentsJoinedByString(","), inReplyToStatusID: inReplyToStatusID, lat: lat, long: long, placeID: placeID, displayCoordinates: displayCoordinates, trimUser: trimUser, success: { (status) -> Void in
+                        success!(status: status)
+                    }, failure: failure)
+                }
+
+                return
+            }, failure: { (error) -> Void in
+                counts++
+                if (counts == mediaUploads.count) {
+                    self.postStatusUpdate(status, media_ids: media_ids.componentsJoinedByString(","), inReplyToStatusID: inReplyToStatusID, lat: lat, long: long, placeID: placeID, displayCoordinates: displayCoordinates, trimUser: trimUser, success: { (status) -> Void in
+                        success!(status: status)
+                        }, failure: failure)
+                }
+                return
+            })
+        }
+       
+    }
+    // Upload Media
+    public func uploadMedia(medias: NSArray, success: ((status: JSONValue) -> Void)?, failure: FailureHandler?) {
+        var path: String = "media/upload.json"
+        
+        var parameters = Dictionary<String, AnyObject>()
+        parameters["media"] = medias[0]
+        parameters[Swifter.DataParameters.dataKey] = "media"
+        
+        self.postJSONWithPath(path, baseURL: self.uploadURL, parameters: parameters, uploadProgress: nil, downloadProgress: nil, success: {
+            json, response in
+            
+            success?(status: json)
+            return
+            
+            }, failure: failure)
+    }
     /*
     POST	statuses/retweet/:id
 
