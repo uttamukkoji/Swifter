@@ -237,12 +237,13 @@ public extension Swifter {
             
             }, failure: failure)
     }
+    
     // post Status with Multiple Media
     public func postStatusUpdate(status: String, mediaUploads: NSArray, inReplyToStatusID: String?, lat: Double?, long: Double?, placeID: Double?, displayCoordinates: Bool?, trimUser: Bool?, success: ((status: Dictionary<String, JSONValue>?) -> Void)?, failure: FailureHandler?) {
         var  counts : Int = 0
         var media_ids : NSMutableArray = NSMutableArray()
         for data in mediaUploads {
-            self.uploadMedia(mediaUploads, success: { (statuss) -> Void in
+            self.uploadMedia(data as NSData, success: { (statuss) -> Void in
                 counts++
                 let statuses : JSONValue = statuss
                 let mediauid : String = statuses["media_id_string"].string!
@@ -269,11 +270,11 @@ public extension Swifter {
        
     }
     // Upload Media
-    public func uploadMedia(medias: NSArray, success: ((status: JSONValue) -> Void)?, failure: FailureHandler?) {
+    private func uploadMedia(media: NSData, success: ((status: JSONValue) -> Void)?, failure: FailureHandler?) {
         var path: String = "media/upload.json"
         
         var parameters = Dictionary<String, AnyObject>()
-        parameters["media"] = medias[0]
+        parameters["media"] = media
         parameters[Swifter.DataParameters.dataKey] = "media"
         
         self.postJSONWithPath(path, baseURL: self.uploadURL, parameters: parameters, uploadProgress: nil, downloadProgress: nil, success: {
